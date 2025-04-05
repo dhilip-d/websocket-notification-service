@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Notifications</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs/lib/stomp.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #ffffff, #f0f0f0, #e0e0e0);
+            color: #212529;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        #notifications {
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        #notifications p {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Real-Time Notifications</h1>
+    <div id="notifications"></div>
+</div>
+
+<script>
+    let stompClient = null;
+
+    function connect() {
+        const socket = new SockJS('http://localhost:7000/ws');  // Correct the WebSocket URL
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+            console.log('Connected: ' + frame);  // Log the successful connection
+            stompClient.subscribe('/topic/notifications', function (message) {
+                showNotification(message.body);  // Handle incoming messages
+            });
+        }, function (error) {
+            console.error('WebSocket connection error: ' + error);  // Log WebSocket errors
+        });
+    }
+
+    function showNotification(message) {
+        const notifications = document.getElementById('notifications');
+        const notification = document.createElement('p');
+        notification.textContent = message;
+        notifications.appendChild(notification);
+    }
+
+    connect();
+</script>
+</body>
+</html>

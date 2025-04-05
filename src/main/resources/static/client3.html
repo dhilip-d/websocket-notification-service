@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List with Notifications</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs/lib/stomp.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        .todo-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #ddd;
+        }
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000;
+        }
+        .toast {
+            background: white;
+            color: #333;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            opacity: 0;
+            transform: translateY(-20px);
+            animation: fadeInOut 5s ease-in-out forwards;
+            border: 1px solid #ddd;
+        }
+        .toast button {
+            background: transparent;
+            border: none;
+            color: #333;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+    </style>
+</head>
+<body>
+<div class="todo-container">
+    <h1>To-Do List</h1>
+    <ul>
+        <li>Complete project report <button>&check;</button></li>
+        <li>Review team feedback <button>&check;</button></li>
+        <li>Plan next sprint <button>&check;</button></li>
+    </ul>
+</div>
+<div class="toast-container" id="toast-container"></div>
+<script>
+    let stompClient = null;
+
+    function requestNotificationPermission() {
+        if ("Notification" in window) {
+            Notification.requestPermission().then(permission => {
+                if (permission !== "granted") {
+                    console.warn("Notifications blocked by user");
+                }
+            });
+        }
+    }
+
+    function connect() {
+        const socket = new SockJS('http://localhost:7000/ws');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+            console.log('Connected: ' + frame);
+            stompClient.subscribe('/topic/notifications', function (message) {
+                showToast(message.body);
+                showChromeNotification(message.body);
+            });
+        }, function (error) {
+            console.error('WebSocket connection error: ' + error);
+        });
+    }
+
+    function showToast(message) {
+        const toastContainer = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.classList.add('toast');
+        toast.innerHTML = `${message} <button onclick='this.parentElement.remove()'>&times;</button>`;
+        toastContainer.appendChild(toast);
+
+        setTimeout(() => {
+            toast.remove();
+        }, 5000);
+    }
+
+    function showChromeNotification(message) {
+        if ("Notification" in window && Notification.permission === "granted") {
+            const notification = new Notification("To-Do List", {
+                body: message,
+                icon: "https://cdn-icons-png.flaticon.com/512/326/326699.png"
+            });
+            notification.onclick = () => {
+                window.focus();
+            };
+        }
+    }
+
+    requestNotificationPermission();
+    connect();
+</script>
+</body>
+</html>

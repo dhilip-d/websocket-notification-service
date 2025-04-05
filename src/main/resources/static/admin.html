@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Notifications</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs/lib/stomp.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #ffffff, #f0f0f0, #e0e0e0);
+            color: #212529;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        #notifications {
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+        }
+        #notifications p {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            border: none;
+            font-size: 1rem;
+        }
+        input {
+            width: 70%;
+        }
+        button {
+            background-color: #7b1fa2;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #6a1b9a;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Real-Time Notifications</h1>
+    <div id="notifications"></div>
+    <input type="text" id="message" placeholder="Enter your message">
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+    let stompClient = null;
+
+    function connect() {
+        const socket = new SockJS('http://localhost:7000/ws');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+            console.log('Connected: ' + frame);
+            stompClient.subscribe('/topic/notifications', function (message) {
+                showNotification(message.body);
+            });
+        }, function (error) {
+            console.error('WebSocket connection error: ' + error);
+        });
+    }
+
+    function sendMessage() {
+        const message = document.getElementById('message').value;
+        if (stompClient && stompClient.connected) {
+            stompClient.send('/app/sendMessage', {}, message);
+            console.log('Message sent:', message);
+            document.getElementById('message').value = ''; // Clear the input after sending
+        } else {
+            console.error('WebSocket connection is not established.');
+        }
+    }
+
+    function showNotification(message) {
+        const notifications = document.getElementById('notifications');
+        const notification = document.createElement('p');
+        notification.textContent = message;
+        notifications.appendChild(notification);
+    }
+
+    connect();
+</script>
+</body>
+</html>
